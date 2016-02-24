@@ -83,6 +83,7 @@ function trackEventInternal(eventName, properties, impersonate){
             }
             else{
                 _kmq.push(['record', eventName, properties]);
+                Intercom('trackEvent', eventName, properties);
             }
         }
         else{
@@ -91,6 +92,7 @@ function trackEventInternal(eventName, properties, impersonate){
             }
             else {
                 _kmq.push(['record', eventName]);
+                Intercom('trackEvent', eventName);
             }
         }
     }
