@@ -222,12 +222,14 @@ function aliasUserInternal(newUserId, previousUserId){
         }
 
         if (ost_useSegment){
-            if (!(!newUserId)){
-                if (!(!previousUserId)){
-                    analytics.alias(newUserId, previousUserId);
-                }
-                else{
-                    analytics.alias(newUserId);
+            if(newUserId != previousUserId){
+                if (!(!newUserId)){
+                    if (!(!previousUserId)){
+                        analytics.alias(newUserId, previousUserId);
+                    }
+                    else{
+                        analytics.alias(newUserId);
+                    }
                 }
             }
         }
