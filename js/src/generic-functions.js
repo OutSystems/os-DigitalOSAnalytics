@@ -197,7 +197,54 @@ function identifyUserInternal(userName, name, email, osId){
     }
 }
 
+// Function to combine two previously unassociated user identities. New newUserId is aliased to a previously known (previousUserId) user
+function aliasUser(newUserId, previousUserId){
+    try{
+        if (ost_initialized){
+            aliasUserInternal(newUserId, previousUserId);
+        }
+        else{
+            ost_trackRequestQueue.push({f:aliasUserInternal, params:[newUserId, previousUserId]});
+        }
+    }
+    catch(e){
+        if (typeof console != "undefined") {
+            console.error("AliasUser Error: " + e);
+        } 
+    }
+}
 
+// Internal function to combine two previously unassociated user identities. New newUserId is aliased to a previously known (previousUserId) user
+function aliasUserInternal(newUserId, previousUserId){
+    try{
+        if (typeof console != "undefined") {
+            console.log("AliasUser: " + newUserId);
+        }
+
+        if (ost_useSegment){
+            if (!(!newUserId)){
+                if (!(!previousUserId)){
+                    analytics.alias(newUserId, previousUserId);
+                }
+                else{
+                    analytics.alias(newUserId);
+                }
+            }
+        }
+        else{
+            if (!(!newUserId)){
+                if (!(!previousUserId)){
+                    _kmq.push(['alias', newUserId, previousUserId]);
+                }
+            }
+        }
+    }
+    catch(e){
+        if (typeof console != "undefined") {
+            console.error("AliasUser Error: " + e);
+        } 
+    }
+}
 
 // Function to add the currently identified or anonymous User, to a Group with a generic set of Properties. Supports queueing
 function addToGroup(group, properties){
