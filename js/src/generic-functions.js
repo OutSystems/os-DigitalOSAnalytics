@@ -1,6 +1,7 @@
 // OutSystems Tracking  Object, encapsulating third-party tools
 var osAnalytics = window.osAnalytics = window.osAnalytics || [];
 osAnalytics._useSegment = false;
+osAnalytics._useIntercom = false;
 osAnalytics._initialized = false;
 osAnalytics._loaded = false;
 osAnalytics._requestQueue = [];
@@ -86,6 +87,9 @@ osAnalytics.trackEventInternal = function(eventName, properties, impersonate){
         if(properties != null){
             if(osAnalytics._useSegment){
                 analytics.track(eventName, properties);
+                if(osAnalytics._useIntercom){
+                    Intercom('trackEvent', eventName, properties);
+                }
             }
             else{
                 _kmq.push(['record', eventName, properties]);
@@ -95,6 +99,9 @@ osAnalytics.trackEventInternal = function(eventName, properties, impersonate){
         else{
             if(osAnalytics._useSegment){
                 analytics.track(eventName);
+                if(osAnalytics._useIntercom){
+                    Intercom('trackEvent', eventName);
+                }
             }
             else {
                 _kmq.push(['record', eventName]);
