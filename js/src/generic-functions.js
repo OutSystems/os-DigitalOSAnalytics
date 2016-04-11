@@ -187,45 +187,46 @@ var osAnalytics = (function($) {
 
 		if(iframe != null) {
 			try {
-				if(_decorateIframeURLWithGA) {
-					var _gaq = window._gaq = window._gaq || [];
-					_gaq.push(function() {
-							var pageTracker = _gat._getTrackerByName();
-							iframe.src = pageTracker._getLinkerUrl(url);
-						});
-					}
-					else {
-						// Create fallback to set the source url of the iframe if the osAnalytics.ready doesn't trigger in 500ms
-						var fallback = setTimeout(
-							// Closure to allow passing the iframe reference to the function to be executed when the timeout elapses
-							(function(iframe) {
-								return function() {
-									iframe.src = url;
-								}
-							})(iframe), 500);
+				// Create fallback to set the source url of the iframe if the osAnalytics.ready doesn't trigger in 500ms
+				var fallback = setTimeout(
+					// Closure to allow passing the iframe reference to the function to be executed when the timeout elapses
+					(function(iframe) {
+						return function() {
+							iframe.src = url;
+						}
+					})(iframe), 500);
 
-						// Closure to allow passing the iframe and setTimeout references to the function that will ensure that the url decoration is executed
-						(function(iframe, fallback) {
-							return myOsAnalytics.ready(function() {
-								try {
-									iframe.src = myOsAnalytics.decorateURL(url);
-									clearTimeout(fallback);
-								} catch (e) {
-									// if something fails, use simple url
-									iframe.src = url;
-								}
-							})
-						})(iframe, fallback);
-					}
-				} catch (e) {
-					// if something fails, use simple url
-					iframe.src = url;
-				}
-			}
-			else {
-				console.log('osAnalytics.setIframeURL: unable to find iframe with id [' + iframeId + ']');
+				// Closure to allow passing the iframe and setTimeout references to the function that will ensure that the url decoration is executed
+				(function(iframe, fallback) {
+					return myOsAnalytics.ready(function() {
+						try {
+							if(_decorateIframeURLWithGA) {
+								var _gaq = window._gaq = window._gaq || [];
+								_gaq.push(function() {
+										var pageTracker = _gat._getTrackerByName();
+										iframe.src = pageTracker._getLinkerUrl(url);
+										clearTimeout(fallback);
+									});
+							}
+							else {
+								iframe.src = myOsAnalytics.decorateURL(url);
+								clearTimeout(fallback);
+							}
+						} catch (e) {
+							// if something fails, use simple url
+							iframe.src = url;
+						}
+					})
+				})(iframe, fallback);
+			} catch (e) {
+				// if something fails, use simple url
+				iframe.src = url;
 			}
 		}
+		else {
+			console.log('osAnalytics.setIframeURL: unable to find iframe with id [' + iframeId + ']');
+		}
+	}
 
 	//****************** END: Public Utility Functions ******************/
 
