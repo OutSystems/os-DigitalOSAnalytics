@@ -178,7 +178,7 @@ var osAnalytics = (function($) {
     //****************** BEGIN: Public Utility Functions ******************/
 
     // Decorates the given url with the utm tags present in the current window url, supports optionally setting the utm tags in urchkin/google analytics classic utmz format
-    myOsAnalytics.decorateURL = function(url, includeUtmz = true) { /* In minified use "b.decorateURL=function(a,b=!0)" */
+    myOsAnalytics.decorateURL = function(url, includeUtmz) { /* In minified use "b.decorateURL=function(a,b=!0)" */
         /**
          * Based on https://gist.github.com/primozcigler/32082baf12753b3d36ed
          */
@@ -567,7 +567,7 @@ var osAnalytics = (function($) {
         return url;
     }
 
-    var _convertPropertiesToURLParameters = function(properties, encode = false) /* encode=!1 */ {
+    var _convertPropertiesToURLParameters = function(properties, encode) /* encode=!1 */ {
         var parameters = [];
         for (var propertyName in properties) {
             if (encode) {
@@ -622,5 +622,5 @@ function trackEvent(eventName, properties, impersonate) {
 
 // Function to identify a user, with the optional name, email and osId traits. Supports queueing
 function identifyUser(userName, name, email, osId) {
-    osAnalytics.identifyUser(userName, name, email, osId);
+    osAnalytics.identifyUser(userName, {name: name, email: email, osId: osId});
 }
