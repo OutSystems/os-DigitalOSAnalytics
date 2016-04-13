@@ -13,7 +13,6 @@ var osAnalytics = (function($) {
         _requestQueue = [],
         _readyCallbackQueue = [];
 
-
     // Enables osAnalytics options
     myOsAnalytics.setOptions = function(options) {
         try{
@@ -120,14 +119,14 @@ var osAnalytics = (function($) {
     }
 
     // Function to identify a user, with the optional name, email and osId traits. Supports queueing
-    myOsAnalytics.identifyUser = function(userName, name, email, osId) {
+    myOsAnalytics.identifyUser = function(userName, traits) {
         try {
             if (_initialized) {
-                _identifyUserInternal(userName, name, email, osId);
+                _identifyUserInternal(userName, traits);
             } else {
                 _requestQueue.push({
                     f: _identifyUserInternal,
-                    params: [userName, name, email, osId]
+                    params: [userName, traits]
                 });
             }
         } catch (e) {
@@ -315,10 +314,10 @@ var osAnalytics = (function($) {
     }
 
     // Function to identify a user, with the optional name, email and osId traits
-    var _identifyUserInternal = function(userName, name, email, osId) {
+    var _identifyUserInternal = function(userName, traits) {
         try {
             if (typeof console != "undefined") {
-                console.log("IdentifyUser: " + userName);
+                console.log("IdentifyUser: " + userName + " # " + traits);
             }
 
             if (_useSegment) {
@@ -329,75 +328,16 @@ var osAnalytics = (function($) {
                     };
                 }
 
-                if (!(!userName)) {
-                    if (!(!name)) {
-                        if (!(!email)) {
-                            if (!(!osId)) {
-                                analytics.identify(userName, {
-                                    name: name,
-                                    email: email,
-                                    osId: osId
-                                }, {
-                                    integrations: integrations
-                                });
-                            } else {
-                                analytics.identify(userName, {
-                                    name: name,
-                                    email: email
-                                }, {
-                                    integrations: integrations
-                                });
-                            }
-                        } else {
-                            if (!(!osId)) {
-                                analytics.identify(userName, {
-                                    name: name,
-                                    osId: osId
-                                }, {
-                                    integrations: integrations
-                                });
-                            } else {
-                                analytics.identify(userName, {
-                                    name: name
-                                }, {
-                                    integrations: integrations
-                                });
-                            }
-                        }
-                    } else {
-                        if (!(!email)) {
-                            if (!(!osId)) {
-                                analytics.identify(userName, {
-                                    email: email,
-                                    osId: osId
-                                }, {
-                                    integrations: integrations
-                                });
-                            } else {
-                                analytics.identify(userName, {
-                                    email: email
-                                }, {
-                                    integrations: integrations
-                                });
-                            }
-                        } else {
-                            if (!(!osId)) {
-                                analytics.identify(userName, {
-                                    osId: osId
-                                }, {
-                                    integrations: integrations
-                                });
-                            } else {
-                                analytics.identify(userName, {
-                                }, {
-                                    integrations: integrations
-                                });
-                            }
-                        }
-                    }
-                }
+                if (traits != null) {
+					analytics.identify(userName, traits, {integrations: integrations});
+				} else {
+					analytics.identify(userName, {}, {integrations: integrations});
+				}
             } else {
                 _kmq.push(['identify', userName]);
+                if (traits != null) {
+                    _kmq.push(['set', _getKMProperties(traits)]);
+                }
             }
         } catch (e) {
             if (typeof console != "undefined") {
@@ -685,5 +625,5 @@ function trackEvent(eventName, properties, impersonate) {
 
 // Function to identify a user, with the optional name, email and osId traits. Supports queueing
 function identifyUser(userName, name, email, osId) {
-    osAnalytics.identifyUser(userName, name, email, osId);
+    osAnalytics.identifyUser(userName, {name: name, email: email, osId: osId});
 }
