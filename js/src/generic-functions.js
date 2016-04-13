@@ -134,10 +134,10 @@ var osAnalytics = (function($) {
 	myOsAnalytics.addToGroup = function(group, properties) {
 		try {
 			if (_initialized) {
-				addToGroupInternal(group, properties);
+				_addToGroupInternal(group, properties);
 			} else {
 				_requestQueue.push({
-					f: _addUserToGroupInternal,
+					f: _addToGroupInternal,
 					params: [group, properties]
 				});
 			}
@@ -153,7 +153,10 @@ var osAnalytics = (function($) {
 	//****************** BEGIN: Public Utility Functions ******************/
 
 	// Decorates the given url with the utm tags present in the current window url, supports optionally setting the utm tags in urchkin/google analytics classic utmz format
-	myOsAnalytics.decorateURL = function(url, includeUtmz = true) { /* In minified use "b.decorateURL=function(a,b=!0)" */
+	myOsAnalytics.decorateURL = function(url, includeUtmz) {
+		// Initialize parameter with default value
+		includeUtmz = typeof includeUtmz !== 'undefined' ? includeUtmz : true;
+
 		/**
 		 * Based on https://gist.github.com/primozcigler/32082baf12753b3d36ed
 		 */
@@ -410,26 +413,26 @@ var osAnalytics = (function($) {
 	}
 
 	// Internal function to add the currently identified or anonymous User, to a Group with a generic set of Properties
-	var _addToGroupInternal = function(group, properties) {
+    var _addToGroupInternal = function(groupId, properties) {
 		try {
 
 			if (typeof console != "undefined") {
-				console.log("addToGroup: " + group + " # " + properties + " # ");
+                console.log("addToGroup: " + groupId + " # " + properties + " # ");
 			}
 
 			if (properties != null) {
 				if (_useSegment) {
-					analytics.group(group, properties);
+                    analytics.group(groupId, properties);
 				} else {
 					// Mimic Segment's behavior
-					_kmq.push(['set', _getKMGroupProperties(properties, group)]);
+                    _kmq.push(['set', _getKMGroupProperties(properties, groupId)]);
 				}
 			} else {
 				if (_useSegment) {
-					analytics.group(group);
+                    analytics.group(groupId);
 				} else {
 					// Mimic Segment's behavior
-					_kmq.push(['set', _getKMGroupProperties(properties, group)]);
+                    _kmq.push(['set', _getKMGroupProperties(properties, groupId)]);
 				}
 			}
 		} catch (e) {
@@ -558,6 +561,21 @@ var osAnalytics = (function($) {
 		return copy;
 	}
 
+    // Helper function to format Group Properties for KissMetrics, adding the group identifier as a prefix of each property and capitalizing the first letter
+    var _getKMGroupProperties = function(props, group) {
+        var copy = {};
+        for(var x in props) {
+            if (props.hasOwnProperty(x)) {
+                copy['Group - ' +  x.charAt(0).toUpperCase() + x.slice(1)] = props[x];
+            }
+        };
+        if(group != null && group != ""){
+            copy['Group - id'] = group;
+        }
+        return copy;
+    }
+
+
 	/**
 	 * Helper function for getting parameter by name
 	 * @see  http://stackoverflow.com/a/901144
@@ -585,7 +603,10 @@ var osAnalytics = (function($) {
 		return url;
 	}
 
-	var _convertPropertiesToURLParameters = function(properties, encode = false) /* encode=!1 */ {
+	var _convertPropertiesToURLParameters = function(properties, encode) {
+		// Initialize parameter with default value
+		encode = typeof encode !== 'undefined' ? encode : false;
+
 		var parameters = [];
 		for (var propertyName in properties) {
 			if (encode) {
