@@ -2,17 +2,17 @@
 var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($) {
 
     var myOsAnalytics = {},
-    _useSegment = false,
-    _useIntercom = false,
-    _sendToGoogleAnalytics = false,
-    _identifyInIntercom = false,
-    _decorateIframeURLWithGA = true,
-    /*_trackInMarketo = false,*/
-    _initialized = false,
-    _loaded = false,
-    _requestQueue = [],
-    _readyCallbackQueue = [],
-    _loadedCallbackQueue = [];
+        _useSegment = false,
+        _useIntercom = false,
+        _sendToGoogleAnalytics = false,
+        _identifyInIntercom = false,
+        _decorateIframeURLWithGA = true,
+        /*_trackInMarketo = false,*/
+        _initialized = false,
+        _loaded = false,
+        _requestQueue = [],
+        _readyCallbackQueue = [],
+        _loadedCallbackQueue = [];
 
     // Enables osAnalytics options
     myOsAnalytics.setOptions = function(options) {
@@ -73,30 +73,30 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         try {
             if (_initialized) { // we're always ready to go, since we aren't asynchronously loading the script (yet)
                 callback();
-        } else {
-            _readyCallbackQueue.push(callback);
-        }
-    } catch (e) {
-        if (typeof console != "undefined") {
-            console.error("ready Error: " + e);
+            } else {
+                _readyCallbackQueue.push(callback);
+            }
+        } catch (e) {
+            if (typeof console != "undefined") {
+                console.error("ready Error: " + e);
+            }
         }
     }
-}
 
-        // Allows execution of callbacks to be triggered when the tracking script completes loading
-        myOsAnalytics.loaded = function(callback) {
-            try {
+    // Allows execution of callbacks to be triggered when the tracking script completes loading
+    myOsAnalytics.loaded = function(callback) {
+        try {
             if (_loaded) { // we're always ready to go, since we aren't asynchronously loading the script (yet)
                 callback();
-        } else {
-            _loadedCallbackQueue.push(callback);
-        }
-    } catch (e) {
-        if (typeof console != "undefined") {
-            console.error("loaded Error: " + e);
+            } else {
+                _loadedCallbackQueue.push(callback);
+            }
+        } catch (e) {
+            if (typeof console != "undefined") {
+                console.error("loaded Error: " + e);
+            }
         }
     }
-}
 
     //****************** BEGIN: Public Tracking Functions ******************/
 
@@ -137,24 +137,6 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         }
     }
 
-    // Function to track events performed by a user, with a generic set of properties. Supports queueing
-    myOsAnalytics.trackEvent_v2 = function(eventName, properties, object, ga_label) {
-        try {
-            if (_initialized) {
-                _trackEventInternal_v2(eventName, properties, object, ga_label);
-            } else {
-                _requestQueue.push({
-                    f: _trackEventInternal_v2,
-                    params: [eventName, properties, object, ga_label]
-                });
-            }
-        } catch (e) {
-            if (typeof console != "undefined") {
-                console.error("TrackEvent Error: " + e);
-            }
-        }
-    }
-
     // Function to identify a user, with the optional traits object to include name, email, company, etc. Supports queueing
     myOsAnalytics.identifyUser = function(userName, traits) {
         try {
@@ -173,6 +155,7 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         }
     }
 
+
     // Function to associate the set of optional traits with the current session, without Identifying the user. Supports queueing
     myOsAnalytics.addUserTraits = function(traits) {
         try {
@@ -190,7 +173,7 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
             }
         }
     }
-    
+
     // Function to combine two previously unassociated user identities. New newUserId is aliased to a previously known (previousUserId) user
     myOsAnalytics.aliasUser = function(newUserId, previousUserId) {
         try {
@@ -303,10 +286,10 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
                             if(_decorateIframeURLWithGA) {
                                 var _gaq = window._gaq = window._gaq || [];
                                 _gaq.push(function() {
-                                    var pageTracker = _gat._getTrackerByName();
-                                    iframe.src = pageTracker._getLinkerUrl(url);
-                                    clearTimeout(fallback);
-                                });
+                                        var pageTracker = _gat._getTrackerByName();
+                                        iframe.src = pageTracker._getLinkerUrl(url);
+                                        clearTimeout(fallback);
+                                    });
                             }
                             else {
                                 iframe.src = myOsAnalytics.decorateURL(url);
@@ -342,7 +325,7 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
             if (typeof eventName == 'undefined') {
                 throw new Error('The eventName must be defined.');
             }
-            
+
             if (!(!impersonate)) {
                 _identifyUserInternal(impersonate);
             }
@@ -384,76 +367,6 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
 
                 if (_useIntercom) {
                     Intercom('trackEvent', eventName);
-                }
-            }
-
-            // Send to Marketo
-            /*
-            if (_trackInMarketo) {
-                if (window.Munchkin != null) {
-                    Munchkin.munchkinFunction('visitWebPage', {
-                        url: _createEventBaseUrl(eventName), params: _convertPropertiesToURLParameters(properties)
-                    });
-                } else {
-                    if (typeof console !== "undefined" && console !== null) {
-                        console.log("Could not send data to marketo because Munchkin is not defined.");
-                    }
-                }
-            }*/
-        } catch (e) {
-            if (typeof console != "undefined") {
-                console.error("TrackEvent Error: " + e);
-            }
-        }
-    }
-
-    var _trackEventInternal_v2 = function(eventName, properties, object, ga_label) {
-        try {
-            if (typeof console !== "undefined") {
-                console.log("TrackEvent: " + eventName + " # " + properties+ " # " + object + " # " + ga_label);
-            }
-
-            if (typeof eventName == 'undefined') {
-                throw new Error('The eventName must be defined.');
-            }
-
-            if (properties != null) {
-
-                properties.category = object;
-
-                if(properties.hasOwnProperty(ga_label)){
-                    properties.label = properties[ga_label];
-                }
-            }
-            else {
-                var properties = {
-                    category: object
-                };
-            }
-
-            if (_useSegment) {
-                analytics.track(eventName, properties);
-            } else {
-                _kmq.push(['record', eventName, properties]);
-            }
-
-            if (_useIntercom) {
-                Intercom('trackEvent', eventName, properties);
-            }
-            if (_sendToGoogleAnalytics && (typeof _gaq !== 'undefined') ) {
-                if (typeof properties.category !== 'undefined') {
-                    if (typeof properties.label !== 'undefined') {
-                        if(typeof properties.value !== 'undefined'){
-                            _gaq.push(['_trackEvent', object, action, properties.label, properties.value]);
-                        }
-                        _gaq.push(['_trackEvent', object, action, properties.label]);
-                    }
-                    else {
-                        _gaq.push(['_trackEvent', object, action]);
-                    }
-                }
-                else {
-                    /* Category and Action are mandatory (https://developers.google.com/analytics/devguides/collection/gajs/eventTrackerGuide#setting-up-event-tracking) */
                 }
             }
 
@@ -667,7 +580,7 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
                     analytics.ready(callback);
                 }
             }
-        }
+    }
 
 
     // Snippet for loading KM
@@ -678,8 +591,8 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         function _kms(u) {
             setTimeout(function() {
                 var d = document,
-                f = d.getElementsByTagName('script')[0],
-                s = d.createElement('script');
+                    f = d.getElementsByTagName('script')[0],
+                    s = d.createElement('script');
                 s.type = 'text/javascript';
                 s.async = true;
                 s.src = u;
@@ -765,10 +678,10 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
      * @param  {string} name
      * @return {string}
      */
-     var _getURLParameterByName = function(name) {
+    var _getURLParameterByName = function(name) {
         name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
         var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
+            results = regex.exec(location.search);
         return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
     }
 
@@ -870,8 +783,8 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
             _loadedCallbackQueue[i]();
         }
         _loadedCallbackQueue = [];
-    }    
-    
+    }
+
     var _getCookiesJSON = function(){
         var cookiesArray = [];
         document.cookie.split(';').forEach(function(cookieValue){
@@ -879,8 +792,8 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
                 var cookie = cookieValue.trim().split('=');
                 cookiesArray.push({id: cookie[0], value: cookie[1]});
             }
-        catch(e){ /* do nothing, skip cookie */}
-    })
+            catch(e){ /* do nothing, skip cookie */}
+        })
         return JSON.stringify(cookiesArray);
     }
 
@@ -893,12 +806,12 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
 if (window.self !== window.top) {
     // we're not loading the third-party scripts again if running inside an iframe, therefore we need to explicitly track the page visit on the iframe
     osAnalytics.trackPageVisit({
-        path: location.pathname,
-        referrer: document.referrer,
-        title: document.title,
-        search: location.search,
-        url: location.href.indexOf('?') != -1 ? location.href : location.href + location.search
-    });
+                    path: location.pathname,
+                    referrer: document.referrer,
+                    title: document.title,
+                    search: location.search,
+                    url: location.href.indexOf('?') != -1 ? location.href : location.href + location.search
+                });
 }
 
 //------------------------------------------------------------------------------------
