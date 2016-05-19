@@ -2,17 +2,17 @@
 var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($) {
 
     var myOsAnalytics = {},
-        _useSegment = false,
-        _useIntercom = false,
-        _sendToGoogleAnalytics = false,
-        _identifyInIntercom = false,
-        _decorateIframeURLWithGA = true,
-        /*_trackInMarketo = false,*/
-        _initialized = false,
-        _loaded = false,
-        _requestQueue = [],
-        _readyCallbackQueue = [],
-        _loadedCallbackQueue = [];
+    _useSegment = false,
+    _useIntercom = false,
+    _sendToGoogleAnalytics = false,
+    _identifyInIntercom = false,
+    _decorateIframeURLWithGA = true,
+    /*_trackInMarketo = false,*/
+    _initialized = false,
+    _loaded = false,
+    _requestQueue = [],
+    _readyCallbackQueue = [],
+    _loadedCallbackQueue = [];
 
     // Enables osAnalytics options
     myOsAnalytics.setOptions = function(options) {
@@ -73,30 +73,30 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         try {
             if (_initialized) { // we're always ready to go, since we aren't asynchronously loading the script (yet)
                 callback();
-            } else {
-                _readyCallbackQueue.push(callback);
-            }
-        } catch (e) {
-            if (typeof console != "undefined") {
-                console.error("ready Error: " + e);
-            }
+        } else {
+            _readyCallbackQueue.push(callback);
+        }
+    } catch (e) {
+        if (typeof console != "undefined") {
+            console.error("ready Error: " + e);
         }
     }
+}
 
-    // Allows execution of callbacks to be triggered when the tracking script completes loading
-    myOsAnalytics.loaded = function(callback) {
-        try {
+        // Allows execution of callbacks to be triggered when the tracking script completes loading
+        myOsAnalytics.loaded = function(callback) {
+            try {
             if (_loaded) { // we're always ready to go, since we aren't asynchronously loading the script (yet)
                 callback();
-            } else {
-                _loadedCallbackQueue.push(callback);
-            }
-        } catch (e) {
-            if (typeof console != "undefined") {
-                console.error("loaded Error: " + e);
-            }
+        } else {
+            _loadedCallbackQueue.push(callback);
+        }
+    } catch (e) {
+        if (typeof console != "undefined") {
+            console.error("loaded Error: " + e);
         }
     }
+}
 
     //****************** BEGIN: Public Tracking Functions ******************/
 
@@ -120,14 +120,14 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
     }
 
     // Function to track events performed by a user, with a generic set of properties. Supports queueing
-    myOsAnalytics.trackEvent = function(eventName, properties, impersonate) {
+    myOsAnalytics.trackEvent = function(eventName, properties, object, ga_label) {
         try {
             if (_initialized) {
-                _trackEventInternal(eventName, properties, impersonate);
+                _trackEventInternal(eventName, properties, object, ga_label);
             } else {
                 _requestQueue.push({
                     f: _trackEventInternal,
-                    params: [eventName, properties, impersonate]
+                    params: [eventName, properties, object, ga_label]
                 });
             }
         } catch (e) {
@@ -155,7 +155,6 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         }
     }
 
-
     // Function to associate the set of optional traits with the current session, without Identifying the user. Supports queueing
     myOsAnalytics.addUserTraits = function(traits) {
         try {
@@ -173,7 +172,7 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
             }
         }
     }
-
+    
     // Function to combine two previously unassociated user identities. New newUserId is aliased to a previously known (previousUserId) user
     myOsAnalytics.aliasUser = function(newUserId, previousUserId) {
         try {
@@ -286,10 +285,10 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
                             if(_decorateIframeURLWithGA) {
                                 var _gaq = window._gaq = window._gaq || [];
                                 _gaq.push(function() {
-                                        var pageTracker = _gat._getTrackerByName();
-                                        iframe.src = pageTracker._getLinkerUrl(url);
-                                        clearTimeout(fallback);
-                                    });
+                                    var pageTracker = _gat._getTrackerByName();
+                                    iframe.src = pageTracker._getLinkerUrl(url);
+                                    clearTimeout(fallback);
+                                });
                             }
                             else {
                                 iframe.src = myOsAnalytics.decorateURL(url);
@@ -316,57 +315,55 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
     //****************** BEGIN: Internal Tracking Functions ******************/
 
     // Internal function to track events performed by a user, with a generic set of properties
-    var _trackEventInternal = function(eventName, properties, impersonate) {
+    var _trackEventInternal = function(eventName, properties, object, ga_label) {
         try {
             if (typeof console !== "undefined") {
-                console.log("TrackEvent: " + eventName + " # " + properties + " # " + impersonate);
+                console.log("TrackEvent: " + eventName + " # " + properties+ " # " + object + " # " + ga_label);
             }
 
             if (typeof eventName == 'undefined') {
                 throw new Error('The eventName must be defined.');
             }
 
-            if (!(!impersonate)) {
-                _identifyUserInternal(impersonate);
+            if (properties != null) {
+
+                if(!_hasOwnPropertyCI(properties, 'category')){
+                    properties.category = object;
+                }
+
+                if(_hasOwnPropertyCI(properties, ga_label)){
+                    properties.label = properties[ga_label];
+                }
+            }
+            else {
+                var properties = {
+                    category: object
+                };
             }
 
-            if (properties != null) {
-                if (_useSegment) {
-                    analytics.track(eventName, properties);
-                } else {
-                    _kmq.push(['record', eventName, properties]);
-                }
+            if (_useSegment) {
+                analytics.track(eventName, properties);
+            } else {
+                _kmq.push(['record', eventName, properties]);
+            }
 
-                if (_useIntercom) {
-                    Intercom('trackEvent', eventName, properties);
-                }
-                if (_sendToGoogleAnalytics && (typeof _gaq !== 'undefined') ) {
-                    if (typeof properties.category !== 'undefined') {
-                        if (typeof properties.label !== 'undefined') {
-                            if (typeof properties.value !== 'undefined') {
-                                _gaq.push(['_trackEvent', properties.category, eventName, properties.label, properties.value]);
-                            }
-                            else {
-                                _gaq.push(['_trackEvent', properties.category, eventName, properties.label]);
-                            }
+            if (_useIntercom) {
+                Intercom('trackEvent', eventName, properties);
+            }
+            if (_sendToGoogleAnalytics && (typeof _gaq !== 'undefined') ) {
+                if (typeof properties.category !== 'undefined') {
+                    if (typeof properties.label !== 'undefined') {
+                        if(typeof properties.value !== 'undefined'){
+                            _gaq.push(['_trackEvent', object, eventName, properties.label, properties.value]);
                         }
-                        else {
-                            _gaq.push(['_trackEvent', properties.category, eventName]);
-                        }
+                        _gaq.push(['_trackEvent', object, eventName, properties.label]);
                     }
                     else {
-                        /* Category and Action are mandatory (https://developers.google.com/analytics/devguides/collection/gajs/eventTrackerGuide#setting-up-event-tracking) */
+                        _gaq.push(['_trackEvent', object, eventName]);
                     }
                 }
-            } else {
-                if (_useSegment) {
-                    analytics.track(eventName);
-                } else {
-                    _kmq.push(['record', eventName]);
-                }
-
-                if (_useIntercom) {
-                    Intercom('trackEvent', eventName);
+                else {
+                    /* Category and Action are mandatory (https://developers.google.com/analytics/devguides/collection/gajs/eventTrackerGuide#setting-up-event-tracking) */
                 }
             }
 
@@ -580,7 +577,7 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
                     analytics.ready(callback);
                 }
             }
-    }
+        }
 
 
     // Snippet for loading KM
@@ -591,8 +588,8 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         function _kms(u) {
             setTimeout(function() {
                 var d = document,
-                    f = d.getElementsByTagName('script')[0],
-                    s = d.createElement('script');
+                f = d.getElementsByTagName('script')[0],
+                s = d.createElement('script');
                 s.type = 'text/javascript';
                 s.async = true;
                 s.src = u;
@@ -678,10 +675,10 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
      * @param  {string} name
      * @return {string}
      */
-    var _getURLParameterByName = function(name) {
+     var _getURLParameterByName = function(name) {
         name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
         var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-            results = regex.exec(location.search);
+        results = regex.exec(location.search);
         return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
     }
 
@@ -783,8 +780,8 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
             _loadedCallbackQueue[i]();
         }
         _loadedCallbackQueue = [];
-    }
-
+    }    
+    
     var _getCookiesJSON = function(){
         var cookiesArray = [];
         document.cookie.split(';').forEach(function(cookieValue){
@@ -792,9 +789,18 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
                 var cookie = cookieValue.trim().split('=');
                 cookiesArray.push({id: cookie[0], value: cookie[1]});
             }
-            catch(e){ /* do nothing, skip cookie */}
-        })
+        catch(e){ /* do nothing, skip cookie */}
+    })
         return JSON.stringify(cookiesArray);
+    }
+
+	var _hasOwnPropertyCI = function(object, propertyName) {
+    if (typeof propertyName !== 'undefined' && propertyName !== null && typeof object !== 'undefined' && object !== null) {
+	    return Object.keys(object)
+			  .filter(function (key) {
+				 return key.toLowerCase() === propertyName.toLowerCase();
+			   }).length > 0;
+	    };
     }
 
     //****************** END: Helper Functions ******************/
@@ -806,12 +812,12 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
 if (window.self !== window.top) {
     // we're not loading the third-party scripts again if running inside an iframe, therefore we need to explicitly track the page visit on the iframe
     osAnalytics.trackPageVisit({
-                    path: location.pathname,
-                    referrer: document.referrer,
-                    title: document.title,
-                    search: location.search,
-                    url: location.href.indexOf('?') != -1 ? location.href : location.href + location.search
-                });
+        path: location.pathname,
+        referrer: document.referrer,
+        title: document.title,
+        search: location.search,
+        url: location.href.indexOf('?') != -1 ? location.href : location.href + location.search
+    });
 }
 
 //------------------------------------------------------------------------------------
