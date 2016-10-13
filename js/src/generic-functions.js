@@ -1,5 +1,13 @@
+function getDomainTop(){
+    var frame = window;
+    try {
+        while (frame.parent.document !== frame.document) frame = frame.parent;
+    } catch(e){}
+    return frame;
+}
+
 // OutSystems Tracking  Object, encapsulating third-party tools
-var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($) {
+var osAnalytics = getDomainTop().osAnalytics = getDomainTop().osAnalytics || (function($) {
 
     var myOsAnalytics = {},
     _useSegment = false,
@@ -12,7 +20,8 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
     _loaded = false,
     _requestQueue = [],
     _readyCallbackQueue = [],
-    _loadedCallbackQueue = [];
+    _loadedCallbackQueue = [],
+    _sendCookies = false;
 
     // Enables osAnalytics options
     myOsAnalytics.setOptions = function(options) {
@@ -32,6 +41,9 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
             if (typeof options.sendToGoogleAnalytics !== 'undefined') {
                 _sendToGoogleAnalytics = options.sendToGoogleAnalytics;
             }
+            if (typeof options.sendCookies !== 'undefined') {
+                _sendCookies = options.sendCookies;
+            }
             
         } catch(e) {
             if (typeof console != "undefined") {
@@ -43,30 +55,31 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
 
     // Performs the initialization and processes the queue, it is be called after declaring the used library in the AddScript wb
     myOsAnalytics.initialize = function(options) {
-        _useSegment = options.useSegment,
-        _useIntercom = options.useIntercom,
-        _identifyInIntercom = options.identifyInIntercom,
-        _sendToGoogleAnalytics = options.sendToGoogleAnalytics/*,
-        _trackInMarketo = options.trackInMarketo*/;
+			_useSegment = options.useSegment,
+			_useIntercom = options.useIntercom,
+			_identifyInIntercom = options.identifyInIntercom,
+			_sendToGoogleAnalytics = options.sendToGoogleAnalytics,
+			_sendCookies = options.sendCookies/*,
+			_trackInMarketo = options.trackInMarketo*/;
 
-        if (typeof options.useGoogleAnalyticsDecorator !== 'undefined') {
-            _decorateIframeURLWithGA = options.useGoogleAnalyticsDecorator;
-        }
-        
-        if (_useSegment) {
-            _loadSegment(options.key, _trackerReadyCallback);
-        } else {
-            if (_useIntercom) {
-                _loadKM(options.key);
-                _loadIntercom(options.key, _trackerReadyCallback);
-            } else {
-                _loadKM(options.intercomKey, _trackerReadyCallback);
-            }
-        }
+			if (typeof options.useGoogleAnalyticsDecorator !== 'undefined') {
+				_decorateIframeURLWithGA = options.useGoogleAnalyticsDecorator;
+			}
+			
+			if (_useSegment) {
+				_loadSegment(options.key, _trackerReadyCallback);
+			} else {
+				if (_useIntercom) {
+					_loadKM(options.key);
+					_loadIntercom(options.key, _trackerReadyCallback);
+				} else {
+					_loadKM(options.intercomKey, _trackerReadyCallback);
+				}
+			}
 
-        _initialized = true;
-        _processQueue();
-    }
+			_initialized = true;
+			_processQueue();
+		}
 
     // Allows execution of callbacks to be triggered when the tracking script completes loading
     myOsAnalytics.ready = function(callback) {
@@ -263,9 +276,18 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         return _appendParamsToURL(url, urlAppend)
     }
 
-    myOsAnalytics.setIframeURL = function(iframeId, url) {
+    myOsAnalytics.setIframeURL = function(iframeId, url, frame) {
         // Get iframe
-        var iframe = _findIframe(iframeId, window);
+		var startFrame = frame;
+		if (typeof startFrame === 'undefined')
+		{
+			startFrame = window;
+		}
+        var iframe = _findIframe(iframeId, startFrame);
+		if(iframe === null) {
+			startFrame = getDomainTop();
+			iframe = _findIframe(iframeId, startFrame);
+		}
 
         if(iframe != null) {
             try {
@@ -525,6 +547,10 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
             }
 
             if (_useSegment) {
+				if (_sendCookies) {
+					properties = _addCookiesToProperties(properties);
+				}
+				
                 analytics.page(properties);
             } else {
                 KM.pageView();
@@ -572,7 +598,11 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
                 };
                 analytics.SNIPPET_VERSION = "3.1.0";
                 analytics.load(key);
-                analytics.page();
+				var properties = {};
+				if (_sendCookies) {
+					properties = _addCookiesToProperties(properties);
+				}
+                analytics.page(properties);
                 if (callback) {
                     analytics.ready(callback);
                 }
@@ -728,7 +758,7 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
                     break;
                 }
                 else {
-                    iframe = FindIframe(iframeId, window.frames[index]);
+                    iframe = _findIframe(iframeId, window.frames[index]);
                     if (iframe !== null){
                         break;
                     }
@@ -748,6 +778,25 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         return 'http://segment.io/event/' + eventName.replace(/\s/g, '-');
     }
 
+	var _getCookiesArray = function(){
+		var cookies = [];
+		var excludedCookies = ["__insp_targlpt", "__insp_norec_sess", "__insp_targlpu", "__insp_ref", "__insp_nv", "__utma", "__utmc", "__utmz", "_gat", "ajs_group_id", "ajs_user_id","DEVICE_TYPE", "DEVICE_SIMULATION", "km_abi", "km_e", "km_eq", "km_lv", "km_ni", "km_uq", "km_vs", "kvcd", "OS_AcceptCookies", "pageLoadedFromBrowserCache", "PlatformLicensing", "s%3Acontext.referrer"];
+		document.cookie.split(';').forEach(function(cookieValue){
+			var cookie = cookieValue.trim().split('=');
+			if (excludedCookies.indexOf(cookie[0]) === -1) {
+				cookies.push({id: cookie[0], value: cookie[1]});
+			}
+			})
+
+		return cookies;
+	}
+	
+	var _addCookiesToProperties = function(properties){
+			var extendedProperties = properties || {};
+			extendedProperties.cookies = _getCookiesArray();
+		return extendedProperties;
+	}
+	
     var _trackerReadyCallback = function() {
         _loaded = true;
 
@@ -782,18 +831,6 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
         _loadedCallbackQueue = [];
     }    
     
-    var _getCookiesJSON = function(){
-        var cookiesArray = [];
-        document.cookie.split(';').forEach(function(cookieValue){
-            try {
-                var cookie = cookieValue.trim().split('=');
-                cookiesArray.push({id: cookie[0], value: cookie[1]});
-            }
-        catch(e){ /* do nothing, skip cookie */}
-    })
-        return JSON.stringify(cookiesArray);
-    }
-
 	var _hasOwnPropertyCI = function(object, propertyName) {
     if (typeof propertyName !== 'undefined' && propertyName !== null && typeof object !== 'undefined' && object !== null) {
 	    return Object.keys(object)
@@ -809,7 +846,7 @@ var osAnalytics = window.top.osAnalytics = window.top.osAnalytics || (function($
 }(jQuery));
 
 // Check if running in iframe
-if (window.self !== window.top) {
+if (window.self !== getDomainTop()) {
     // we're not loading the third-party scripts again if running inside an iframe, therefore we need to explicitly track the page visit on the iframe
     osAnalytics.trackPageVisit({
         path: location.pathname,
