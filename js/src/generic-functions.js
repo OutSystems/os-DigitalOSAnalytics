@@ -21,7 +21,8 @@ var osAnalytics = getDomainTop().osAnalytics = getDomainTop().osAnalytics || (fu
     _requestQueue = [],
     _readyCallbackQueue = [],
     _loadedCallbackQueue = [],
-    _sendCookies = false;
+    _sendCookies = false,
+	_sendCookiesAsArray = false;
 
     // Enables osAnalytics options
     myOsAnalytics.setOptions = function(options) {
@@ -44,7 +45,9 @@ var osAnalytics = getDomainTop().osAnalytics = getDomainTop().osAnalytics || (fu
             if (typeof options.sendCookies !== 'undefined') {
                 _sendCookies = options.sendCookies;
             }
-            
+            if (typeof options.sendCookiesAsArray !== 'undefined') {
+                _sendCookiesAsArray = options.sendCookiesAsArray;
+            }
         } catch(e) {
             if (typeof console != "undefined") {
                 console.error("setOption Error: " + e);
@@ -59,7 +62,8 @@ var osAnalytics = getDomainTop().osAnalytics = getDomainTop().osAnalytics || (fu
 			_useIntercom = options.useIntercom,
 			_identifyInIntercom = options.identifyInIntercom,
 			_sendToGoogleAnalytics = options.sendToGoogleAnalytics,
-			_sendCookies = options.sendCookies/*,
+			_sendCookies = options.sendCookies,
+			_sendCookiesAsArray = options.sendCookiesAsArray/*,
 			_trackInMarketo = options.trackInMarketo*/;
 
 			if (typeof options.useGoogleAnalyticsDecorator !== 'undefined') {
@@ -790,10 +794,28 @@ var osAnalytics = getDomainTop().osAnalytics = getDomainTop().osAnalytics || (fu
 
 		return cookies;
 	}
+
+	var _getCookiesObject = function(){
+		var cookies = {};
+		var excludedCookies = ["__insp_targlpt", "__insp_norec_sess", "__insp_targlpu", "__insp_ref", "__insp_nv", "__utma", "__utmc", "__utmz", "_gat", "ajs_group_id", "ajs_user_id","DEVICE_TYPE", "DEVICE_SIMULATION", "km_abi", "km_e", "km_eq", "km_lv", "km_ni", "km_uq", "km_vs", "kvcd", "OS_AcceptCookies", "pageLoadedFromBrowserCache", "PlatformLicensing", "s%3Acontext.referrer"];
+		document.cookie.split(';').forEach(function(cookieValue){
+			var cookie = cookieValue.trim().split('=');
+			if (excludedCookies.indexOf(cookie[0]) === -1) {
+				cookies[cookie[0]] = cookie[1];
+			}
+			})
+
+		return cookies;
+	}
 	
 	var _addCookiesToProperties = function(properties){
 			var extendedProperties = properties || {};
-			extendedProperties.cookies = _getCookiesArray();
+			if(_sendCookiesAsArray){
+				extendedProperties.cookies = _getCookiesArray();
+			}
+			else {
+				extendedProperties.cookies = _getCookiesObject();
+			}
 		return extendedProperties;
 	}
 	
